@@ -50,6 +50,7 @@ pub fn statement(
             }
         }
         Statement::VariableDecl(loc, pos, _, Some(init)) => {
+            print!("== Generate Variable Decl 1\n");
             if should_remove_variable(pos, func, opt) {
                 let mut params = SideEffectsCheckParameters {
                     cfg,
@@ -76,6 +77,7 @@ pub fn statement(
             );
         }
         Statement::VariableDecl(loc, pos, param, None) => {
+            print!("== Generate Variable Decl 2\n");
             if should_remove_variable(pos, func, opt) {
                 return;
             }
@@ -90,7 +92,11 @@ pub fn statement(
                 },
             );
         }
-        Statement::Return(_, expr) => {
+        Statement::Return(loc, expr) => {
+            let file = &ns.files[loc.file_no()];
+            let path = file.path.to_str().unwrap_or("");
+            let (line, col) = file.offset_to_line_column(loc.start());
+            print!("- Generate Return Stmt: {}, {}, {}\n", path, line, col);
             if let Some(return_instr) = return_override {
                 cfg.add(vartab, return_instr.clone());
             } else {
@@ -100,7 +106,11 @@ pub fn statement(
                 }
             }
         }
-        Statement::Expression(_, reachable, expr) => {
+        Statement::Expression(loc, reachable, expr) => {
+            let file = &ns.files[loc.file_no()];
+            let path = file.path.to_str().unwrap_or("");
+            let (line, col) = file.offset_to_line_column(loc.start());
+            print!("- Generate Expression: {}, {}, {}\n", path, line, col);
             if let Expression::Assign(_, _, left, right) = &expr {
                 if should_remove_assignment(ns, left, func, opt) {
                     let mut params = SideEffectsCheckParameters {
