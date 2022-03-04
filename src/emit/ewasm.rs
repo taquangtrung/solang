@@ -33,6 +33,8 @@ impl EwasmTarget {
         opt: OptimizationLevel,
         math_overflow_check: bool,
     ) -> Binary<'a> {
+        print!("***** EMIT LLVM IR FOR EWASM!\n");
+
         // first emit runtime code
         let mut b = EwasmTarget {
             abi: ethabiencoder::EthAbiDecoder { bswap: false },

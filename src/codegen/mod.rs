@@ -90,6 +90,8 @@ impl Default for Options {
 /// The contracts are fully resolved but they do not have any a CFG which is needed for
 /// the llvm code emitter. This will also do addition code checks.
 pub fn codegen(ns: &mut Namespace, opt: &Options) {
+    print!("======== Running Code Gen!\n");
+
     if any_errors(&ns.diagnostics) {
         return;
     }
@@ -101,6 +103,8 @@ pub fn codegen(ns: &mut Namespace, opt: &Options) {
     // codegen all the contracts; some additional errors/warnings will be detected here
     while contracts_done.iter().any(|e| !*e) {
         for contract_no in 0..ns.contracts.len() {
+            print!("======== Running Code Gen 2!\n");
+
             if contracts_done[contract_no] {
                 continue;
             }
@@ -119,7 +123,11 @@ pub fn codegen(ns: &mut Namespace, opt: &Options) {
                 continue;
             }
 
+            print!("======== Running Code Gen 3!\n");
+
             contract(contract_no, ns, opt);
+
+            print!("======== Running Code Gen 4!\n");
 
             if any_errors(&ns.diagnostics) {
                 return;
@@ -143,6 +151,8 @@ pub fn codegen(ns: &mut Namespace, opt: &Options) {
                         opt.math_overflow_check,
                     );
 
+                    print!("======== Complete emit contract!\n");
+
                     let code = binary.code(Generate::Linked).expect("llvm build");
 
                     drop(binary);
@@ -151,6 +161,8 @@ pub fn codegen(ns: &mut Namespace, opt: &Options) {
                 }
             }
 
+            print!("======== Running Code Gen 5!\n");
+
             contracts_done[contract_no] = true;
         }
     }
@@ -158,6 +170,7 @@ pub fn codegen(ns: &mut Namespace, opt: &Options) {
 
 fn contract(contract_no: usize, ns: &mut Namespace, opt: &Options) {
     if !any_errors(&ns.diagnostics) && ns.contracts[contract_no].is_concrete() {
+        print!("======== Generate CFG 1!\n");
         layout(contract_no, ns);
 
         let mut cfg_no = 0;

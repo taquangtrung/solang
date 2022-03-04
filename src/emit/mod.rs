@@ -5777,6 +5777,29 @@ impl<'a> Binary<'a> {
         let triple = target.llvm_target_triple();
         let module = context.create_module(name);
 
+        let debug_metadata_version = context.i32_type().const_int(3, false);
+        module.add_basic_value_flag(
+            "Debug Info Version",
+            inkwell::module::FlagBehavior::Warning,
+            debug_metadata_version,
+        );
+        let builder = context.create_builder();
+        let (dibuilder, compile_unit) = module.create_debug_info_builder(
+            true,
+            /* language */ inkwell::debug_info::DWARFSourceLanguage::C,
+            /* filename */ name,
+            /* directory */ ".",
+            /* producer */ "solang",
+            /* is_optimized */ false,
+            /* compiler command line flags */ "",
+            /* runtime_ver */ 0,
+            /* split_name */ "",
+            /* kind */ inkwell::debug_info::DWARFEmissionKind::Full,
+            /* dwo_id */ 0,
+            /* split_debug_inling */ false,
+            /* debug_info_for_profiling */ false,
+        );
+
         module.set_triple(&triple);
         module.set_source_file_name(filename);
 

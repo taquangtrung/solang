@@ -8,9 +8,9 @@ contract incrementer {
 		value = initvalue;
 	}
 
-	/// This increments the value by `by`. 
+	/// This increments the value by `by`.
 	function inc(uint32 by) public {
-		value += by;
+		  value += by;
 	}
 
 	/// Simply returns the current value of our `uint32`.
