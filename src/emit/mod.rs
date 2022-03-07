@@ -17,6 +17,8 @@ use std::collections::{HashMap, VecDeque};
 
 use crate::Target;
 use inkwell::builder::Builder;
+use inkwell::debug_info::DebugInfoBuilder;
+use inkwell::debug_info::DICompileUnit;
 use inkwell::context::Context;
 use inkwell::memory_buffer::MemoryBuffer;
 use inkwell::module::{Linkage, Module};
@@ -3309,6 +3311,14 @@ pub trait TargetRuntime<'a> {
         function: FunctionValue<'a>,
         ns: &Namespace,
     ) {
+        print!("== EMIT CFG OF A FUNCTION!\n");
+        // create debugging information
+        let dibuilder = &bin.dibuilder;
+        let return_type = &function.get_type().get_return_type();
+        // let di_return_type = dibuilder.create_basic_type(
+        //     return_type.
+        // );
+
         // recurse through basic blocks
         struct BasicBlock<'a> {
             bb: inkwell::basic_block::BasicBlock<'a>,
@@ -5563,6 +5573,8 @@ pub struct Binary<'a> {
     constructor_abort_value_transfers: bool,
     math_overflow_check: bool,
     builder: Builder<'a>,
+    dibuilder: DebugInfoBuilder<'a>,
+    compile_unit: DICompileUnit<'a>,
     context: &'a Context,
     functions: HashMap<usize, FunctionValue<'a>>,
     code: RefCell<Vec<u8>>,
@@ -5785,11 +5797,11 @@ impl<'a> Binary<'a> {
         );
         let builder = context.create_builder();
         let (dibuilder, compile_unit) = module.create_debug_info_builder(
-            true,
+            /* allow_unresolved */ true,
             /* language */ inkwell::debug_info::DWARFSourceLanguage::C,
             /* filename */ name,
             /* directory */ ".",
-            /* producer */ "solang",
+            /* producer */ "Solang",
             /* is_optimized */ false,
             /* compiler command line flags */ "",
             /* runtime_ver */ 0,
@@ -5798,6 +5810,8 @@ impl<'a> Binary<'a> {
             /* dwo_id */ 0,
             /* split_debug_inling */ false,
             /* debug_info_for_profiling */ false,
+            /* sysroot */ "",
+            /* sdk */ ""
         );
 
         module.set_triple(&triple);
@@ -5852,7 +5866,10 @@ impl<'a> Binary<'a> {
             function_abort_value_transfers: false,
             constructor_abort_value_transfers: false,
             math_overflow_check,
-            builder: context.create_builder(),
+            // builder: context.create_builder(),
+            builder,
+            dibuilder,
+            compile_unit,
             context,
             target,
             functions: HashMap::new(),
