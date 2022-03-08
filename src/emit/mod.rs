@@ -7,7 +7,9 @@ use std::cell::RefCell;
 use std::convert::TryFrom;
 use std::ffi::CStr;
 use std::fmt;
+use std::iter::Map;
 use std::path::Path;
+use std::result;
 use std::str;
 
 use num_bigint::{BigInt, Sign};
@@ -17,9 +19,14 @@ use std::collections::{HashMap, VecDeque};
 
 use crate::Target;
 use inkwell::builder::Builder;
-use inkwell::debug_info::DebugInfoBuilder;
-use inkwell::debug_info::DICompileUnit;
 use inkwell::context::Context;
+use inkwell::debug_info::DICompileUnit;
+use inkwell::debug_info::DIFlags;
+use inkwell::debug_info::DIFlagsConstants;
+use inkwell::debug_info::DISubprogram;
+use inkwell::debug_info::AsDIScope;
+use inkwell::debug_info::DIType;
+use inkwell::debug_info::DebugInfoBuilder;
 use inkwell::memory_buffer::MemoryBuffer;
 use inkwell::module::{Linkage, Module};
 use inkwell::passes::PassManager;
@@ -3311,13 +3318,61 @@ pub trait TargetRuntime<'a> {
         function: FunctionValue<'a>,
         ns: &Namespace,
     ) {
-        print!("== EMIT CFG OF A FUNCTION!\n");
         // create debugging information
+        print!("* EMIT CFG OF FUNCTION: {:?}\n", function.get_name());
         let dibuilder = &bin.dibuilder;
-        let return_type = &function.get_type().get_return_type();
-        // let di_return_type = dibuilder.create_basic_type(
-        //     return_type.
-        // );
+        let compile_unit = &bin.compile_unit;
+        let file = compile_unit.get_file();
+        let di_return_type = dibuilder
+            .create_basic_type(
+                "",
+                function
+                    .get_type()
+                    .get_return_type()
+                    .unwrap()
+                    .size_of()
+                    .unwrap()
+                    .get_zero_extended_constant()
+                    .unwrap(),
+                0x00,
+                inkwell::debug_info::DIFlagsConstants::PUBLIC,
+            )
+            .unwrap();
+        let param_types = function.get_type().get_param_types();
+        let di_param_types : Vec<DIType<'_>> = param_types
+            .iter()
+            .map(|typ| {
+                dibuilder
+                    .create_basic_type(
+                        "",
+                        typ.size_of().unwrap().get_zero_extended_constant().unwrap(),
+                        0x00,
+                        inkwell::debug_info::DIFlagsConstants::PUBLIC,
+                    )
+                    .unwrap()
+                    .as_type()
+            })
+            .collect();
+        let di_func_type = dibuilder.create_subroutine_type(
+            file,
+            Some(di_return_type.as_type()),
+            di_param_types.as_slice(),
+            inkwell::debug_info::DIFlagsConstants::PUBLIC,
+        );
+        let di_func_scope: DISubprogram<'_> = dibuilder.create_function(
+            compile_unit.as_debug_info_scope(),
+            function.get_name().to_str().unwrap(),
+            None,
+            file,
+            /* line no*/ 0, // TODO: rectify line name
+            di_func_type,
+            true,
+            true,
+            /* scope line */ 0,  // TODO: rectify scope line
+            inkwell::debug_info::DIFlagsConstants::PUBLIC,
+            false,
+        );
+        function.set_subprogram(di_func_scope);
 
         // recurse through basic blocks
         struct BasicBlock<'a> {
@@ -5811,7 +5866,7 @@ impl<'a> Binary<'a> {
             /* split_debug_inling */ false,
             /* debug_info_for_profiling */ false,
             /* sysroot */ "",
-            /* sdk */ ""
+            /* sdk */ "",
         );
 
         module.set_triple(&triple);
