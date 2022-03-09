@@ -20,11 +20,11 @@ use std::collections::{HashMap, VecDeque};
 use crate::Target;
 use inkwell::builder::Builder;
 use inkwell::context::Context;
+use inkwell::debug_info::AsDIScope;
 use inkwell::debug_info::DICompileUnit;
 use inkwell::debug_info::DIFlags;
 use inkwell::debug_info::DIFlagsConstants;
 use inkwell::debug_info::DISubprogram;
-use inkwell::debug_info::AsDIScope;
 use inkwell::debug_info::DIType;
 use inkwell::debug_info::DebugInfoBuilder;
 use inkwell::memory_buffer::MemoryBuffer;
@@ -3319,60 +3319,62 @@ pub trait TargetRuntime<'a> {
         ns: &Namespace,
     ) {
         // create debugging information
-        print!("* EMIT CFG OF FUNCTION: {:?}\n", function.get_name());
+        print!("\n== EMIT  CFG OF FUNCTION: {:?}\n", function.get_name());
         let dibuilder = &bin.dibuilder;
         let compile_unit = &bin.compile_unit;
         let file = compile_unit.get_file();
-        let di_return_type = dibuilder
-            .create_basic_type(
-                "",
-                function
-                    .get_type()
-                    .get_return_type()
-                    .unwrap()
-                    .size_of()
-                    .unwrap()
-                    .get_zero_extended_constant()
-                    .unwrap(),
-                0x00,
-                inkwell::debug_info::DIFlagsConstants::PUBLIC,
-            )
-            .unwrap();
-        let param_types = function.get_type().get_param_types();
-        let di_param_types : Vec<DIType<'_>> = param_types
-            .iter()
-            .map(|typ| {
-                dibuilder
-                    .create_basic_type(
-                        "",
-                        typ.size_of().unwrap().get_zero_extended_constant().unwrap(),
-                        0x00,
-                        inkwell::debug_info::DIFlagsConstants::PUBLIC,
-                    )
-                    .unwrap()
-                    .as_type()
-            })
-            .collect();
-        let di_func_type = dibuilder.create_subroutine_type(
-            file,
-            Some(di_return_type.as_type()),
-            di_param_types.as_slice(),
-            inkwell::debug_info::DIFlagsConstants::PUBLIC,
-        );
-        let di_func_scope: DISubprogram<'_> = dibuilder.create_function(
-            compile_unit.as_debug_info_scope(),
-            function.get_name().to_str().unwrap(),
-            None,
-            file,
-            /* line no*/ 0, // TODO: rectify line name
-            di_func_type,
-            true,
-            true,
-            /* scope line */ 0,  // TODO: rectify scope line
-            inkwell::debug_info::DIFlagsConstants::PUBLIC,
-            false,
-        );
-        function.set_subprogram(di_func_scope);
+        let  return_type = function.get_type().get_return_type();
+        match return_type {
+            None => {}
+            Some(return_type) => {
+                let return_type_size = return_type.size_of().unwrap();
+                print!("+ Size of return type: {:?}\n", return_type_size);
+                print!("+ Bitwidth: {:?}\n", return_type_size.get_type().get_bit_width());
+                // let di_return_type = dibuilder
+                //     .create_basic_type(
+                //         "",
+                //         return_type_size,
+                //         0x00,
+                //         inkwell::debug_info::DIFlagsConstants::PUBLIC,
+                //     )
+                //     .unwrap();
+                // let param_types = function.get_type().get_param_types();
+                // let di_param_types: Vec<DIType<'_>> = param_types
+                //     .iter()
+                //     .map(|typ| {
+                //         dibuilder
+                //             .create_basic_type(
+                //                 "",
+                //                 typ.size_of().unwrap().get_zero_extended_constant().unwrap(),
+                //                 0x00,
+                //                 inkwell::debug_info::DIFlagsConstants::PUBLIC,
+                //             )
+                //             .unwrap()
+                //             .as_type()
+                //     })
+                //     .collect();
+                // let di_func_type = dibuilder.create_subroutine_type(
+                //     file,
+                //     Some(di_return_type.as_type()),
+                //     di_param_types.as_slice(),
+                //     inkwell::debug_info::DIFlagsConstants::PUBLIC,
+                // );
+                // let di_func_scope: DISubprogram<'_> = dibuilder.create_function(
+                //     compile_unit.as_debug_info_scope(),
+                //     function.get_name().to_str().unwrap(),
+                //     None,
+                //     file,
+                //     /* line no*/ 0, // TODO: rectify line name
+                //     di_func_type,
+                //     true,
+                //     true,
+                //     /* scope line */ 0, // TODO: rectify scope line
+                //     inkwell::debug_info::DIFlagsConstants::PUBLIC,
+                //     false,
+                // );
+                // function.set_subprogram(di_func_scope);
+            }
+        }
 
         // recurse through basic blocks
         struct BasicBlock<'a> {
