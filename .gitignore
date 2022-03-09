@@ -1,5 +1,7 @@
 /docs/build
 Cargo.lock
 /target
+/build
 **/*.rs.bk
 
+solang

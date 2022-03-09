@@ -17,4 +17,13 @@ contract incrementer {
 	function get() public view returns (uint32) {
 		return value;
 	}
+
+	function getAAAAAAAAAAA() public view returns (uint64) {
+		return value;
+	}
+
+	function getBBBBBBBBBBB() public view returns (uint128) {
+		return value;
+	}
+
 }
